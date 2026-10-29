@@ -12,6 +12,11 @@ Cada vez que juegues
   2. Abre esa direccion en el movil (misma red/wifi que el PC).
      Consejo iPhone: Compartir > "Anadir a pantalla de inicio" para abrirla como app.
 
+Actualizaciones del meter (GitHub)
+  Se actualiza solo desde github.com/alexcordoba20-del/meter-movil-loa: al abrir
+  "Meter movil.cmd" y cada 10 minutos mientras esta abierto (y desde el vigilante).
+  Para publicar cambios hechos en un PC: "Publicar cambios.cmd" (necesita git configurado).
+
 Cuando LOA Logs se actualice
   Es automatico: el instalador deja una tarea ("Meter movil - parche LOA Logs") que vuelve
   a parchear LOA Logs al detectar la nueva version y lo reinicia si Lost Ark esta cerrado
