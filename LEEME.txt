@@ -1,0 +1,24 @@
+METER LOA EN EL MOVIL
+=====================
+
+Primera vez en un PC nuevo
+  1. Descomprime esta carpeta donde quieras (p. ej. C:\Herramientas\MeterMovil).
+  2. Cierra Lost Ark. Si no tienes LOA Logs, el instalador abre su pagina de descarga.
+  3. Doble clic en "Instalar (primera vez).cmd" (pide administrador).
+     Instala Python si falta, las librerias, la regla de firewall y parchea LOA Logs.
+
+Cada vez que juegues
+  1. Doble clic en "Meter movil.cmd" (abre LOA Logs si no lo esta). Muestra una direccion tipo http://192.168.x.x:8765
+  2. Abre esa direccion en el movil (misma red/wifi que el PC).
+     Consejo iPhone: Compartir > "Anadir a pantalla de inicio" para abrirla como app.
+
+Cuando LOA Logs se actualice
+  Es automatico: el instalador deja una tarea ("Meter movil - parche LOA Logs") que vuelve
+  a parchear LOA Logs al detectar la nueva version y lo reinicia si Lost Ark esta cerrado
+  (con el juego abierto espera a que lo cierres). Sale un aviso de Windows al hacerlo.
+  Registro: vigilar_parche.log. A mano: python parchear_loalogs.py
+
+Deshacer el parche
+  En la carpeta de LOA Logs hay una copia "LOA Logs.exe.orig": borra el .exe y quitale
+  el ".orig" a la copia. Quita tambien la tarea en el Programador de tareas. O reinstala LOA Logs.
+

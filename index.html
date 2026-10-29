@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="en" translate="no">
+<head>
+<meta charset="utf-8">
+<meta name="google" content="notranslate">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0b0f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Meter LOA</title>
+<style>
+:root{--bg:#0a0b0f;--panel:#12141a;--panel2:#181b23;--line:#232733;--text:#eef0f6;--mute:#7d8396;--dim:#555b6d;
+  --accent:#ff4d5a;--gold:#ffc857;--ok:#3ddc84;--rowh:32px}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);
+  font:13px/1.25 "Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent;
+  font-feature-settings:"tnum" 1,"cv11" 1}
+body{padding:max(8px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) 10px max(10px,env(safe-area-inset-left))}
+button,select{font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:7px;height:30px;padding:0 10px}
+button{cursor:pointer;font-weight:600;font-size:12px}
+button.on{background:#2a1418;border-color:#5a2128;color:#ffd5d8}
+
+/* barra superior */
+.top{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.top select{flex:1;min-width:0;font-size:12.5px}
+.seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:2px;height:30px}
+.seg button{border:0;height:24px;background:transparent;color:var(--mute);padding:0 9px;border-radius:5px}
+.seg button.on{background:var(--panel2);color:var(--text);box-shadow:inset 0 0 0 1px #343949}
+#mode{display:none}
+body.live #mode{display:block}
+
+/* jefe */
+.boss{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;background:linear-gradient(180deg,var(--panel2),var(--panel));
+  border:1px solid var(--line);border-radius:9px;padding:7px 10px;margin-bottom:6px}
+.bl{min-width:0;display:flex;align-items:baseline;gap:8px}
+.bl h1{font-size:14px;font-weight:700;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34vw}
+.bl .dim{color:var(--mute);font-size:11.5px;white-space:nowrap}
+.tag{font-size:9.5px;font-weight:800;letter-spacing:.08em;padding:2px 6px;border-radius:4px;background:#232733;color:var(--mute);align-self:center}
+.tag.live{background:rgba(255,77,90,.14);color:var(--accent)}
+.tag.live::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-right:5px;vertical-align:1px;animation:p 1.2s infinite}
+.tag.ok{background:rgba(61,220,132,.13);color:var(--ok)}
+.tag.ko{background:rgba(255,77,90,.12);color:var(--accent)}
+@keyframes p{50%{opacity:.2}}
+.hp{position:relative;height:14px;border-radius:4px;background:#1e1215;overflow:hidden;min-width:60px}
+.hp i{position:absolute;inset:0 auto 0 0}
+.hp .gh{background:#ffd7a3;opacity:.5;transition:width .9s cubic-bezier(.3,0,.2,1) .45s}
+.hp .fl{background:linear-gradient(90deg,#8f1622,#ff4d5a);transition:width .3s ease-out}
+.hp.hit .fl{animation:hit .28s ease-out}
+@keyframes hit{40%{filter:brightness(1.8) saturate(1.2)}}
+.hp.low .fl{animation:low 1s ease-in-out infinite}
+@keyframes low{50%{filter:brightness(1.5)}}
+.hp span{position:relative;display:block;text-align:center;font-size:10.5px;font-weight:700;line-height:14px;text-shadow:0 1px 2px #000}
+.tot{text-align:right;white-space:nowrap}
+.tot small{display:block;color:var(--dim);font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.tot b{font-size:16px;font-weight:800}
+
+/* tabla */
+.r,.hd{display:grid;grid-template-columns:var(--gtc,16px minmax(0,1fr));gap:0 6px;align-items:center;padding:0 8px 0 10px}
+.hd{height:18px;color:var(--dim);font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
+.hd span,.r .c{text-align:right}
+.hd span.key{color:var(--text)}
+.c{font-size:11.5px;color:rgba(238,240,246,.82);white-space:nowrap;overflow:hidden}
+.c.key{font-size:14px;font-weight:800;color:#fff}
+.nm small i.cpm{font-style:normal;color:#ffd98a;font-weight:700}
+.grp{display:flex;justify-content:space-between;align-items:center;height:18px;padding:0 8px 0 10px;margin-top:4px;
+  color:var(--mute);font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.grp b{color:var(--text);font-weight:700;letter-spacing:0}
+.r{position:relative;height:var(--rowh);margin-bottom:2px;border-radius:6px;background:var(--panel);overflow:hidden;isolation:isolate;
+  transition:transform .5s cubic-bezier(.2,.8,.2,1),opacity .4s,filter .4s}
+.r::before{content:"";position:absolute;inset:0 auto 0 0;width:var(--w);z-index:-2;
+  background:linear-gradient(90deg,color-mix(in srgb,var(--c) 50%,transparent),color-mix(in srgb,var(--c) 22%,transparent));
+  transition:width .55s cubic-bezier(.2,.8,.2,1)}
+/* brillo que recorre la barra del primero */
+.r .sheen{position:absolute;inset:0 auto 0 0;width:var(--w);z-index:-1;display:none;transition:width .55s cubic-bezier(.2,.8,.2,1);
+  background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.16) 50%,transparent 65%) no-repeat;background-size:250% 100%;
+  animation:sheen 3.2s ease-in-out infinite}
+.r.top1 .sheen{display:block}
+@keyframes sheen{0%{background-position:120% 0}60%,100%{background-position:-120% 0}}
+/* entrada al empezar combate */
+.r.enter{animation:enter .5s cubic-bezier(.2,.8,.2,1) both}
+@keyframes enter{from{opacity:0;transform:translateX(-18px)}}
+/* sube / baja de puesto */
+.rk{position:relative}
+.r.up .rk{animation:rkUp 1.4s ease-out}
+.r.down .rk{animation:rkDown 1.4s ease-out}
+.r.up .rk::after,.r.down .rk::after{position:absolute;left:50%;top:-9px;transform:translateX(-50%);font-size:8px;animation:fade 1.4s ease-out forwards}
+.r.up .rk::after{content:"▲";color:var(--ok)}
+.r.down .rk::after{content:"▼";color:var(--accent);top:auto;bottom:-9px}
+@keyframes rkUp{0%,50%{color:var(--ok)}}
+@keyframes rkDown{0%,50%{color:var(--accent)}}
+@keyframes fade{0%,55%{opacity:1}100%{opacity:0}}
+.r.up{animation:glowUp 1.4s ease-out}
+@keyframes glowUp{0%{box-shadow:inset 0 0 0 1px rgba(61,220,132,.9),0 0 14px rgba(61,220,132,.25)}}
+/* muerte */
+.r.died{animation:died .7s ease-out}
+@keyframes died{0%{box-shadow:inset 0 0 0 2px var(--accent);transform:translateX(0)}15%{transform:translateX(-5px)}30%{transform:translateX(5px)}
+  45%{transform:translateX(-3px)}60%{transform:translateX(2px)}100%{transform:none}}
+.grp b,.tot b{display:inline-block}
+.bump{animation:bump .35s ease-out}
+@keyframes bump{40%{transform:scale(1.08)}}
+.r::after{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c)}
+.rk{color:var(--mute);font-size:11px;font-weight:700;text-align:center}
+.nm{min-width:0;display:flex;align-items:baseline;gap:6px;white-space:nowrap;overflow:hidden}
+.nm b{font-weight:700;overflow:hidden;text-overflow:ellipsis}
+.nm small{color:rgba(238,240,246,.55);font-size:10.5px;overflow:hidden;text-overflow:ellipsis}
+.st{font-size:11.5px;color:rgba(238,240,246,.82);white-space:nowrap}
+.st.cpm{color:#ffd98a;font-weight:700}
+.st.sh{color:#9fd3ff;font-size:10.5px;letter-spacing:-.02em}
+.v{font-size:14px;font-weight:800}
+.pc{font-size:11px;color:rgba(238,240,246,.65)}
+.r.me{box-shadow:inset 0 0 0 1px rgba(255,200,87,.55)}
+.r.me .nm b{color:var(--gold)}
+.r.dead{filter:grayscale(.7);opacity:.55}
+.r.dead .nm b::after{content:" ✝";color:var(--accent)}
+
+.status{position:fixed;right:max(10px,env(safe-area-inset-right));bottom:max(6px,env(safe-area-inset-bottom));
+  font-size:10.5px;color:var(--mute);background:rgba(10,11,15,.85);border:1px solid var(--line);border-radius:99px;padding:3px 9px;pointer-events:none}
+.status.warn{color:#ffb4b9;border-color:#5a2128}
+.empty{color:var(--mute);text-align:center;padding:28px 10px}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* vertical: menos columnas */
+@media (orientation:portrait){
+  .nm{flex-direction:column;gap:0;align-items:flex-start}
+  :root{--rowh:38px}
+  .boss{grid-template-columns:1fr auto}
+  .boss .hp{grid-column:1/-1;order:3}
+  .bl{flex-wrap:wrap;row-gap:1px}
+  .bl h1{max-width:none;flex:1 1 0;min-width:0}
+  .bl .dim{flex-basis:100%}
+  .top{flex-wrap:wrap}
+  .top select{flex-basis:100%}
+}
+/* horizontal en móviles bajos: todo más apretado para que quepa la raid entera */
+@media (orientation:landscape) and (max-height:430px){
+  body{padding-top:max(5px,env(safe-area-inset-top));padding-bottom:4px}
+  .top{margin-bottom:4px}
+  .top button,.top select{height:26px}
+  .seg{height:26px}.seg button{height:20px}
+  .boss{padding:4px 10px;margin-bottom:4px}
+  .tot b{font-size:14px}
+  .tot small{font-size:8.5px}
+  .grp{margin-top:2px;height:16px}
+  .hd{height:15px}
+}
+/* filas muy bajas: letra algo menor */
+body.tight .v{font-size:12.5px}
+body.tight .nm b{font-size:12px}
+body.tight .c{font-size:10.5px}
+body.tight .c.key{font-size:12.5px}
+body.tight .nm small{font-size:9.5px}
+
+/* espejo (imagen) */
+#mirror{display:none;width:100%;border-radius:9px;background:#000;object-fit:contain}
+body.img #mirror{display:block}
+body.img #head,body.img #rows,body.img .seg{display:none}
+.tools{display:none;gap:6px;margin:0 0 6px}
+body.img .tools{display:flex}
+.tools button{flex:1}
+@media (orientation:landscape){
+  body.img{padding:0;background:#000}
+  body.img #mirror{position:fixed;top:env(safe-area-inset-top);left:env(safe-area-inset-left);border-radius:0;
+    width:calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right));
+    height:calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
+  body.img .top,body.img .tools,body.img .status{display:none}
+  body.img.ui .top,body.img.ui .tools{display:flex;position:fixed;z-index:2;
+    left:calc(env(safe-area-inset-left) + 8px);right:calc(env(safe-area-inset-right) + 8px);margin:0}
+  body.img.ui .top{top:8px}
+  body.img.ui .tools{top:46px}
+  body.img.ui .status{display:block}
+}
+</style>
+</head>
+<body>
+<div class="top">
+  <select id="sel" aria-label="Encounter"></select>
+  <div class="seg" id="tabs">
+    <button data-m="dps" class="on">DPS</button>
+    <button data-m="rdps">rDPS</button>
+    <button data-m="ndps">nDPS</button>
+  </div>
+  <button id="mode" title="Switch live data / window image">Img</button>
+  <button id="follow" class="on" title="Follow live after each fight">Auto</button>
+</div>
+
+<div class="tools">
+  <button id="fit" title="Move the PC meter off-screen, sized to this phone">Fit</button>
+  <button id="back" title="Put the meter back on the PC">Restore</button>
+</div>
+<img id="mirror" alt="Live meter">
+<div id="head"></div>
+<div id="rows"></div>
+<div class="status" id="status"></div>
+
+<script>
+const COLORS={Local:"#FFC9ED",Berserker:"#ee2e48",Destroyer:"#7b9aa2",Gunlancer:"#e1907e",Paladin:"#ff9900",Slayer:"#db6a42",Valkyrie:"#ffbf00",Arcanist:"#b38915",Summoner:"#22aa99",Bard:"#674598",Sorceress:"#66aa00",Wardancer:"#aaaa11",Scrapper:"#990099",Soulfist:"#316395",Glaivier:"#f6da6a",Striker:"#994499",Breaker:"#4de3d1",Deathblade:"#a91a16",Shadowhunter:"#0099c6",Reaper:"#109618",Souleater:"#c16ed0",Sharpshooter:"#dd4477",Deadeye:"#4442a8",Artillerist:"#33670b",Machinist:"#3b4292",Gunslinger:"#6bcec2",Artist:"#a34af0",Aeromancer:"#084ba3",Wildsoul:"#3a945e",Dimensionalist:"#8b7cf8",Guardianknight:"#f4554b"};  // colores de clase de LOA Logs
+const colorOf=c=>COLORS[c]||"#ffffff";
+const $=id=>document.getElementById(id);
+let metric="dps", view="live", live=null, frameUrl=null, hist=null, cdp="", wsOk=false, lastLatest=null, follow=true;
+let mode="data", enc=null, encTs=0, sock=null;  // mode: "data" (LOA Logs parcheado) o "img" (espejo)
+try{metric=localStorage.getItem("metric")||"dps";mode=localStorage.getItem("mode")||"data"}catch(e){}
+
+const fmt=n=>{n=+n||0;const a=Math.abs(n);
+  return a>=1e9?(n/1e9).toFixed(2)+"b":a>=1e6?(n/1e6).toFixed(1)+"m":a>=1e3?(n/1e3).toFixed(1)+"k":String(Math.round(n))};
+const pct=x=>(x*100).toFixed(1)+"%";
+const p0=x=>Math.round(x*100)+"%";
+const dur=ms=>{const s=Math.floor((ms||0)/1000);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")};
+const time=t=>new Date(t).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+async function j(u){const r=await fetch(u,{cache:"no-store"});if(!r.ok)throw new Error(r.status);return r.json()}
+
+// ---------- historial
+async function loadList(){
+  const list=await j("/api/list?limit=40");
+  $("sel").innerHTML=`<option value="live">● Live</option>`+
+    list.map(e=>`<option value="${e.id}">${time(e.fight_start)} · ${esc(e.current_boss)} ${e.cleared?"✓":"✗"} · ${dur(e.duration)}</option>`).join("");
+  $("sel").value=view;
+}
+async function pollHistory(){
+  try{const {id}=await j("/api/latest-id");if(id!==lastLatest){lastLatest=id;await loadList()}}catch(e){}
+}
+async function showHist(id){hist=await j("/api/encounter?id="+id);render()}
+
+// ---------- directo
+function connect(){
+  const ws=sock=new WebSocket(`ws://${location.host}/ws`);
+  ws.onopen=()=>{wsOk=true;sendWant();status()};
+  ws.binaryType="blob";
+  ws.onmessage=e=>{
+    if(typeof e.data!=="string"){
+      const u=URL.createObjectURL(e.data);$("mirror").src=u;
+      if(frameUrl)URL.revokeObjectURL(frameUrl);frameUrl=u;live={ts:Date.now()/1000};return}
+    const m=JSON.parse(e.data);
+    if(m.type==="status"){cdp=m.cdp;status()}
+    else if(m.type==="raw"){enc=m;encTs=Date.now();if(view==="live"&&mode==="data")render()}};
+  ws.onclose=()=>{wsOk=false;status();setTimeout(connect,2000)};
+  ws.onerror=()=>ws.close();
+}
+const sendWant=()=>{try{sock?.readyState===1&&sock.send(JSON.stringify({want:view==="live"&&mode==="img"?"mirror":"data"}))}catch(e){}};
+function status(){
+  const s=$("status");let t,warn=false;
+  if(!wsOk){t="No PC link…";warn=true}
+  else if(view!=="live")t="History";
+  else if(mode==="data"){
+    const age=encTs?Math.round((Date.now()-encTs)/1000):null;
+    if(age==null){t="Waiting LOA Logs…";warn=true}else if(age>3){t=`Stale ${age}s`;warn=true}else t=""}
+  else{const age=live?.ts?Math.round(Date.now()/1000-live.ts):null;
+    t=(cdp.startsWith("ok")?"Img live":"Mirror: "+cdp)+(age!=null&&age>2?` · ${age}s`:"")}
+  s.textContent=t;s.classList.toggle("warn",warn);s.hidden=!t||(view!=="live");
+}
+
+// ---------- animaciones
+const REDUCE=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const tweens=new Map();let raf=0;
+// Cuenta el número hasta su nuevo valor en vez de saltar.
+function tween(el,to,f=fmt,ms=420){
+  to=+to||0;
+  if(el._v==null||REDUCE){el._v=el._to=to;el.textContent=f(to);el._f=f;return}
+  if(el._to===to&&el._f===f)return;
+  el._to=to;el._f=f;tweens.set(el,{from:el._v,to,f,t0:performance.now(),ms});
+  if(!raf)raf=requestAnimationFrame(step);
+}
+function step(now){
+  for(const [el,t] of tweens){const k=Math.min(1,(now-t.t0)/t.ms),e=1-Math.pow(1-k,3);
+    el._v=t.from+(t.to-t.from)*e;el.textContent=t.f(el._v);if(k>=1)tweens.delete(el)}
+  raf=tweens.size?requestAnimationFrame(step):0;
+}
+// Reinicia una animación CSS aunque ya estuviera puesta.
+function flash(el,cls,ms=1400){
+  el.classList.remove(cls);void el.offsetWidth;el.classList.add(cls);
+  clearTimeout(el["_t"+cls]);el["_t"+cls]=setTimeout(()=>el.classList.remove(cls),ms);
+}
+
+// ---------- lógica del meter de LOA Logs (copiada de su código, v1.52.1)
+// Habilidades que LOA Logs no cuenta para el crítico / ataques posicionales.
+const EXCL=new Set([16720,16730,18240,18250,17250,17260,36230,36240,45820,45830,19360,19370,20370,20350,21320,21330,37380,37390,22360,22370,23400,23410,24300,24310,34620,34630,39340,39350,47300,47310,25410,25420,28260,28270,27910,27920,26940,26950,46620,46630,29360,29370,30320,30330,35810,35890,38320,38330,31920,31930,32290,32300,33520,33530]);
+// Barras de vida por jefe cuando el juego no las manda.
+const HPBARS={"Dark Mountain Predator":50,"Destroyer Lucas":50,"Leader Lugaru":50,"Demon Beast Commander Valtan":160,"Ravaged Tyrant of Beasts":40,"Incubus Morphe":60,"Nightmarish Morphe":60,"Covetous Devourer Vykas":160,"Covetous Legion Commander Vykas":180,Saydon:160,Kakul:140,"Kakul-Saydon":180,"Encore-Desiring Kakul-Saydon":77,"Gehenna Helkasirs":120,Ashtarot:170,"Primordial Nightmare":190,"Brelshaza, Monarch of Nightmares":200,"Imagined Primordial Nightmare":20,"Pseudospace Primordial Nightmare":20,"Phantom Legion Commander Brelshaza":250,"Griefbringer Maurug":150,"Evolved Maurug":30,"Lord of Degradation Akkan":190,"Plague Legion Commander Akkan":220,"Lord of Kartheon Akkan":300,Tienis:110,"Celestial Sentinel":60,Prunya:90,Lauriel:200,"Kaltaya, the Blooming Chaos":120,"Rakathus, the Lurking Arrogance":160,"Firehorn, Trampler of Earth":160,"Lazaram, the Trailblazer":200,"Killineza the Dark Worshipper":180,"Valinak, Knight of Darkness":180,"Valinak, Taboo Usurper":180,"Valinak, Herald of the End":180,"Thaemine the Lightqueller":300,"Dark Greatsword":40,"Darkness Legion Commander Thaemine":350,"Thaemine Prokel":35,"Thaemine, Conqueror of Stars":350,"Red Doom Narkiel":180,Agris:100,Echidna:285,"Covetous Master Echidna":285,"Alcaone, the Twisted Venom":86,"Agris, the Devouring Bog":103,"Behemoth, the Storm Commander":500,"Behemoth, Cruel Storm Slayer":705,"Akkan, Lord of Death":220,"Aegir, the Oppressor":300,"Narok the Butcher":300,"Phantom Manifester Brelshaza":420,"Thaemine, Master of Darkness":300,Infernas:300,"Blossoming Fear, Naitreya":300,"Mordum, the Abyssal Punisher":500,"Flash of Punishment":350,"Abyssal Beast, Narhash":100,"Flame of Darkness, Tarkal":300,"Act 4: Covetous Master Echidna":300,"Brelshaza, Ember in the Ashes":450,"Armoche, Sentinel of the Abyss":450,"Abyss Lord Kazeros":999,"Archdemon Kazeros":999,"Death Incarnate Kazeros":777};
+let SET={meter:{dps:true,damagePercent:true,critRate:true,frontAtk:true,backAtk:true,positionalDmgPercent:true,
+  percentBuffBySup:true,percentBrand:true,percentIdentityBySup:true,percentHatBySup:true},logs:null,general:{}};
+async function loadSettings(){try{const s=await j("/api/settings");if(s&&s.meter)SET=s;render()}catch(e){}}
+
+const vSum=(s,ks=[1,3,5])=>{const c=s&&s.rdpsContributed;if(!c)return 0;let t=0;for(const k of ks)t+=c[k]||0;return t};
+const r1=x=>{const n=x*10*(1+Number.EPSILON);return Math.round(n)/10};        // redondeo de LOA Logs (1 decimal)
+const fmtL=e=>{e=+e||0;return e>=1e12?+(e/1e12).toFixed(2)+"t":e>=1e9?+(e/1e9).toFixed(2)+"b":e>=1e6?+(e/1e6).toFixed(1)+"m":e>=1e3?+(e/1e3).toFixed(1)+"k":String(Math.round(e))};
+const bossBars=b=>b.hpBars?b.hpBars:b.name==="Phantom Legion Commander Brelshaza"?(b.maxHp>1e11?420:250):(HPBARS[b.name]??1);
+function incapMs(list,end){
+  if(!list||!list.length)return 0;let tot=0;const add=(a,b)=>{a=Math.min(a,end);b=Math.min(b,end);tot+=Math.max(0,b-a)};
+  let s=list[0].timestamp,e=list[0].timestamp+list[0].duration;
+  for(let i=1;i<list.length;i++){const d=list[i];if(d.timestamp>e){add(s,e);s=d.timestamp;e=d.timestamp+d.duration}else e=Math.max(e,d.timestamp+d.duration)}
+  add(s,e);return tot;
+}
+
+// Calcula todo lo que enseña el meter, igual que EntityState/EncounterState de LOA Logs.
+function compute(enc){
+  const live=!!enc.live, end=enc.lastCombatPacket||0;
+  // En directo LOA Logs manda duration=0 y su ventana la calcula: último golpe - inicio del combate.
+  const dur=enc.duration||(end&&enc.fightStart?Math.max(0,end-enc.fightStart):0), secs=dur/1000;
+  const players=(enc.entities||[]).filter(e=>(e.damageStats?.damageDealt||0)>0&&String(e.entityType).toUpperCase()==="PLAYER"&&e.classId!==0);
+  const ag={anyDead:false,multipleDeaths:false,anyFrontAtk:false,anyBackAtk:false,anyCounters:false,anySupportBuff:false,anySupportIdentity:false,
+    anySupportBrand:false,anySupportHat:false,anyIncap:false,anyStagger:false,anyUnbuffedDamage:false,anyRdpsRaw:false,supportNames:new Set()};
+  for(const p of players){const S=p.damageStats,I=p.skillStats||{};
+    if(p.isDead)ag.anyDead=true;if(S.deaths>0&&!p.isDead)ag.multipleDeaths=true;if(I.frontAttacks>0)ag.anyFrontAtk=true;if(I.backAttacks>0)ag.anyBackAtk=true;
+    if(I.counters>0)ag.anyCounters=true;if(S.buffedBySupport>0)ag.anySupportBuff=true;if(S.buffedByIdentity>0)ag.anySupportIdentity=true;
+    if(S.debuffedBySupport>0)ag.anySupportBrand=true;if(S.buffedByHat>0)ag.anySupportHat=true;if(S.incapacitations?.length)ag.anyIncap=true;
+    if(S.stagger>0)ag.anyStagger=true;if(S.unbuffedDamage>0)ag.anyUnbuffedDamage=true;if(S.rdpsDamageGiven>0||S.rdpsDamageReceived>0)ag.anyRdpsRaw=true;
+    for(const k of p.skills||[])if(vSum(k)>0){ag.supportNames.add(p.name);break}}
+  // si el registro antiguo no trae flags por habilidad, se reconocen por el daño (parche viejo)
+  if(enc.viejo){ag.anyFrontAtk=players.some(p=>p.damageStats.frontAttackDamage>0);ag.anyBackAtk=players.some(p=>p.damageStats.backAttackDamage>0)}
+  ag.anyRdps=enc.encounterDamageStats?.misc?.rdpsValid!==false&&ag.anyRdpsRaw;
+  ag.anyUdps=ag.supportNames.size>0;
+  ag.isSolo=players.length===1;
+  const total=enc.encounterDamageStats?.totalDamageDealt||players.reduce((a,p)=>a+p.damageStats.damageDealt,0);
+
+  // grupos
+  let pi=enc.partyInfo;pi=pi?(Array.isArray(pi)?pi:Object.values(pi)):null;
+  const partyOf=new Map();if(pi)pi.forEach((names,i)=>(names||[]).forEach(n=>partyOf.set(n,i)));
+
+  const rows=players.map(e=>{
+    const S=e.damageStats,I=e.skillStats||{},sk=e.skills||[],dmg=S.damageDealt;
+    const dWS=dmg-sk.filter(k=>k.special).reduce((a,k)=>a+(k.totalDamage||0),0);
+    const dWSOH=dWS-(S.hyperAwakeningDamage??0);
+    const hWS=(I.hits||0)-sk.filter(k=>k.special||k.isHyperAwakening||EXCL.has(k.id)).reduce((a,k)=>a+(k.hits||0),0);
+    const dps=live?(secs>0?Math.round(dmg/secs):0):(S.dps||0);
+    const nd=dmg-(S.rdpsDamageReceived||0), rd=nd+(S.rdpsDamageGiven||0);
+    const isSup=ag.supportNames.has(e.name);
+    const r={name:e.name,cls:e.class,gs:e.gearScore,isDead:!!e.isDead,party:pi?(partyOf.get(e.name)??pi.length):0,isSup,
+      dmg,dps,ndmg:nd,rdmg:rd,ndps:dur<=0?0:Math.round(nd/secs),rdps:dur<=0?0:Math.round(rd/secs),
+      udmg:S.unbuffedDamage||dmg,
+      udps:live?(S.unbuffedDamage?Math.round(S.unbuffedDamage/secs):dps):(S.unbuffedDps||dps),
+      dpct:total?dmg/total*100:0,
+      crit:hWS>0?r1((I.crits||0)/hWS*100):0,
+      critDmg:hWS>0?r1((S.critDamage||0)/dWSOH*100):0,
+      ba:hWS>0?r1((I.backAttacks||0)/hWS*100):0, bad:S.backAttackDamage>0?r1(S.backAttackDamage/dWSOH*100):0,
+      fa:hWS>0?r1((I.frontAttacks||0)/hWS*100):0, fad:S.frontAttackDamage>0?r1(S.frontAttackDamage/dWSOH*100):0,
+      buff:r1((S.buffedBySupport||0)/dWSOH*100), brand:r1((S.debuffedBySupport||0)/dWSOH*100),
+      iden:r1((S.buffedByIdentity||0)/dWSOH*100), hat:r1((S.buffedByHat??0)/dWS*100),
+      deadFor:e.isDead?Math.abs((end-(S.deathTime||0))/1000).toFixed(0)+"s":"",
+      deaths:S.deaths||0, incap:incapMs(S.incapacitations,end)/1000, stagger:S.stagger||0, counters:I.counters||0,
+      cpm:dur>0&&I.casts!=null?r1(I.casts/(dur/60000)):null};
+    r.casts=I.casts;
+    return r;
+  });
+  // contribuciones (Con% / rCon%)
+  for(const r of rows){
+    const e=players.find(p=>p.name===r.name),S=e.damageStats;
+    if(r.isSup){
+      const mates=rows.filter(o=>o.party===r.party&&!o.isSup);
+      const sum=mates.reduce((a,o)=>a+o.dmg,0);
+      r.rcon=sum?r1((S.rdpsDamageGiven||0)/sum*100):0;
+      const buffed=(e.skills||[]).reduce((a,k)=>a+vSum(k),0);
+      r.con=sum?r1(buffed/sum*100):0;
+    }else{r.rcon=r.dmg?r1((S.rdpsDamageReceived||0)/r.dmg*100):0;r.con=0}
+  }
+  // jefe
+  let boss=null;const b=enc.currentBoss;
+  if(b&&b.maxHp){const hp=Math.max(0,b.currentHp||0);boss={name:b.name,hp,maxHp:b.maxHp,shield:b.currentShield||0,bars:bossBars(b)};
+    if(SET.meter.showTimeUntilKill&&live&&dur>0){
+      const rate=rows.filter(r=>!r.isDead).reduce((a,r)=>a+r.dmg,0)/dur;const t=rate>0?(hp+boss.shield)/rate:Infinity;
+      boss.ttk=t>36e5?"∞":dur2(t)}}
+  return {rows,ag,boss,live,dur,total};
+}
+const dur2=ms=>{const s=Math.max(0,Math.floor(ms/1000));return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")};
+
+// Columnas del meter, en el mismo orden y con las mismas condiciones que LOA Logs.
+// pr = prioridad cuando no caben todas (menor = se queda antes).
+const COLS=[
+ {k:"deadFor",h:"Dead",t:"s",pr:9,show:(s,a)=>s.deathTime&&a.anyDead},
+ {k:"deaths",h:"Deaths",t:"i",pr:9,show:(s,a)=>s.deathTime&&a.multipleDeaths},
+ {k:"incap",h:"INCAP",t:"sec",pr:9,show:(s,a)=>s.incapacitatedTime&&a.anyIncap},
+ {k:"dmg",h:"DMG",t:"n",pr:6,show:s=>s.damage},
+ {k:"dpct",h:"D%",t:"p",pr:2,show:(s,a)=>s.damagePercent&&!a.isSolo},
+ {k:"udmg",h:"uDMG",t:"n",pr:8,show:(s,a)=>s.unbuffedDamage&&(a.anyUnbuffedDamage||a.anyUdps)},
+ {k:"ndmg",h:"nDMG",t:"n",pr:8,show:(s,a)=>s.ndmg&&a.anyRdps},
+ {k:"rdmg",h:"rDMG",t:"n",pr:8,show:(s,a)=>s.rdmg&&a.anyRdps},
+ {k:"dps",h:"DPS",t:"n",pr:1,show:s=>s.dps},
+ {k:"ndps",h:"nDPS",t:"n",pr:1,show:(s,a)=>s.ndps&&a.anyRdps},
+ {k:"rdps",h:"rDPS",t:"n",pr:1,show:(s,a)=>s.rdps&&a.anyRdps},
+ {k:"udps",h:"uDPS",t:"n",pr:7,show:(s,a)=>s.unbuffedDps&&(a.anyUnbuffedDamage||a.anyUdps)},
+ {k:"con",h:"Con%",t:"p",pr:7,show:(s,a)=>s.supportContrib&&a.anyUdps},
+ {k:"rcon",h:"rCon%",t:"p",pr:7,show:(s,a)=>s.rdpsContrib&&a.anyRdps},
+ {k:"crit",h:"CRIT",t:"p",pr:3,show:s=>s.critRate},
+ {k:"fa",h:"F.A",t:"p",pr:6,show:(s,a)=>s.frontAtk&&!s.positionalDmgPercent&&a.anyFrontAtk},
+ {k:"fad",h:"F.AD%",t:"p",pr:6,show:(s,a)=>s.frontAtk&&s.positionalDmgPercent&&a.anyFrontAtk},
+ {k:"ba",h:"B.A",t:"p",pr:5,show:(s,a)=>s.backAtk&&!s.positionalDmgPercent&&a.anyBackAtk},
+ {k:"bad",h:"B.AD%",t:"p",pr:5,show:(s,a)=>s.backAtk&&s.positionalDmgPercent&&a.anyBackAtk},
+ {k:"buff",h:"Buff%",t:"p",pr:4,show:(s,a)=>s.percentBuffBySup&&a.anySupportBuff},
+ {k:"brand",h:"B%",t:"p",pr:4,show:(s,a)=>s.percentBrand&&a.anySupportBrand},
+ {k:"iden",h:"Iden%",t:"p",pr:6,show:(s,a)=>s.percentIdentityBySup&&a.anySupportIdentity},
+ {k:"hat",h:"T%",t:"p",pr:6,show:(s,a)=>s.percentHatBySup&&a.anySupportHat},
+ {k:"stagger",h:"STAG",t:"n",pr:8,show:(s,a)=>s.stagger&&a.anyStagger},
+ {k:"counters",h:"CTR",t:"i",pr:8,show:(s,a)=>s.counters&&a.anyCounters},
+];
+const FMT={n:fmtL,p:x=>(+x).toFixed(1),i:x=>String(Math.round(x)),sec:x=>Math.round(x)+"s",s:x=>x};
+
+// Qué columnas caben: las activadas en LOA Logs y, si no caben, se quitan las de menos prioridad.
+function pickCols(c,key){
+  const s=SET.meter||{};  // las mismas columnas que el meter de LOA Logs, en directo y en historial
+  let cols=COLS.filter(col=>col.show(s,c.ag));
+  if(!cols.some(col=>col.k===key))cols.push(COLS.find(col=>col.k===key));  // la métrica elegida siempre se ve
+  const land=matchMedia("(orientation:landscape)").matches;
+  const cw=land?50:42, nameMin=land?190:112, W=$("rows").clientWidth||innerWidth-20;
+  const max=Math.max(2,Math.floor((W-18-16-nameMin)/(cw+6)));
+  if(cols.length>max){
+    const keep=[...cols].sort((a,b)=>(a.k===key?-1:b.k===key?1:a.pr-b.pr)).slice(0,max);
+    cols=cols.filter(col=>keep.includes(col));
+  }
+  return {cols,cw};
+}
+
+// ---------- pintar (los elementos se reutilizan para que puedan animarse)
+let H=null, fightKey=null, colsKey="";
+const R=new Map();
+const LBL={dps:"DPS",rdps:"rDPS",ndps:"nDPS"};
+function resetView(msg){
+  H=null;fightKey=null;colsKey="";R.clear();
+  $("head").innerHTML=msg?`<div class="empty">${msg}</div>`:"";$("rows").innerHTML="";
+}
+function head(){
+  if(H)return H;
+  $("head").innerHTML=`<div class="boss"><div class="bl"><span class="tag"></span><h1></h1><span class="dim"></span></div>
+    <div class="hp"><i class="gh"></i><i class="fl"></i><span></span></div><div class="tot"><small></small><b></b></div></div>`;
+  const q=s=>$("head").querySelector(s);
+  return H={tag:q(".tag"),h1:q("h1"),dim:q(".dim"),hp:q(".hp"),gh:q(".gh"),fl:q(".fl"),hpt:q(".hp span"),tl:q(".tot small"),tv:q(".tot b"),hpv:null};
+}
+function mk(cls,html){const e=document.createElement("div");e.className=cls;e.innerHTML=html;return e}
+function rowEl(k){
+  const e=mk("r",`<span class="sheen"></span><span class="rk"></span><span class="nm"><b></b><small></small></span>`);
+  e._q={rk:e.querySelector(".rk"),b:e.querySelector(".nm b"),sm:e.querySelector(".nm small")};
+  e._cells=[];e._k=k;return e;
+}
+function setCells(e,cols){
+  for(const c of e._cells)c.remove();
+  e._cells=cols.map(col=>{const s=document.createElement("span");s.className="c";e.appendChild(s);return s});
+}
+
+// En horizontal, la altura de fila se calcula para que quepan todos los jugadores sin scroll.
+function fit(){
+  const root=document.documentElement, rows=$("rows");
+  const n=rows.querySelectorAll(".r").length;
+  if(!n||document.body.classList.contains("img")){
+    root.style.removeProperty("--rowh");document.body.classList.remove("tight");return}
+  const land=matchMedia("(orientation:landscape)").matches;
+  let fijo=0;rows.querySelectorAll(".hd,.grp").forEach(e=>{const s=getComputedStyle(e);fijo+=e.offsetHeight+parseFloat(s.marginTop)+parseFloat(s.marginBottom)});
+  const disp=innerHeight-rows.getBoundingClientRect().top-6;
+  const [lo,hi]=land?[22,34]:[38,52];
+  const h=Math.max(lo,Math.min(hi,Math.floor((disp-fijo)/n)-2));
+  root.style.setProperty("--rowh",h+"px");
+  document.body.classList.toggle("tight",h<28);
+}
+addEventListener("resize",()=>requestAnimationFrame(()=>{colsKey="";render()}));
+addEventListener("orientationchange",()=>setTimeout(()=>{colsKey="";render()},250));
+
+function render(){
+  document.body.classList.toggle("live",view==="live");
+  document.body.classList.toggle("img",view==="live"&&mode==="img");
+  $("mode").textContent=mode==="img"?"Data":"Img";
+  document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on",b.dataset.m===metric));
+  if(view==="live"&&mode==="img")return;
+  const d=view==="live"?enc:hist, isLive=view==="live";
+  if(!d){resetView(isLive?"Waiting for fight…":"Loading…");return}
+
+  const key=(isLive?"L":"H")+(d.id??"")+":"+d.fightStart+":"+d.currentBossName;
+  const fresh=key!==fightKey;
+  if(fresh){resetView();fightKey=key}
+  const c=compute(d), M=metric;
+
+  // cabecera
+  const h=head();
+  h.tag.className="tag "+(isLive?"live":d.cleared?"ok":"ko");
+  h.tag.textContent=isLive?"LIVE":d.cleared?"CLEAR":"WIPE";
+  h.h1.textContent=d.currentBossName||"No boss";
+  h.dim.textContent=[d.difficulty,dur(c.dur),c.boss?.ttk?"TTK "+c.boss.ttk:"",isLive?"":time(d.fightStart)].filter(Boolean).join(" · ");
+  const b=c.boss, hp=b?b.hp/b.maxHp:null;
+  h.hp.style.visibility=hp==null?"hidden":"";
+  if(hp!=null){
+    const w=(hp*100).toFixed(2)+"%";
+    h.fl.style.width=w;h.gh.style.width=w;
+    if(h.hpv!=null&&hp<h.hpv-1e-4)flash(h.hp,"hit",300);
+    h.hp.classList.toggle("low",hp>0&&hp<.1);
+    h.hpv=hp;
+    tween(h.hpt,hp,v=>pct(v)+(b.bars>1?` · ${Math.max(0,Math.ceil(v*b.bars))}x`:""));
+  }
+  h.tl.textContent="Total "+LBL[M];
+  tween(h.tv,c.rows.reduce((a,r)=>a+(r[M]||0),0),fmtL);
+
+  // filas
+  const cont=$("rows");
+  const ps=[...c.rows].sort((a,b)=>(b[M]||0)-(a[M]||0));
+  if(!ps.length){cont.innerHTML=`<div class="empty">No dmg yet</div>`;R.clear();colsKey="";return}
+  cont.querySelector(".empty")?.remove();
+  const {cols,cw}=pickCols(c,M);
+  cont.style.setProperty("--gtc",`16px minmax(0,1fr) repeat(${cols.length},${cw}px)`);
+  const ck=cols.map(x=>x.k).join(",")+"|"+cw;
+  const top=Math.max(1,...ps.map(p=>p[M]||0));
+  const rank=new Map(ps.map((p,i)=>[p.name,i+1]));
+  const parties=[...new Set(ps.map(p=>p.party))].sort((a,b)=>a-b);
+
+  const before=new Map();for(const [k,e] of R)before.set(k,e.getBoundingClientRect().top);
+  const order=[];
+  let hd=R.get("_hd");
+  if(!hd){hd=mk("hd","");hd._k="_hd";R.set("_hd",hd)}
+  if(ck!==colsKey){
+    hd.innerHTML=`<span></span><span style="text-align:left">Name</span>`+cols.map(x=>`<span class="${x.k===M?"key":""}">${x.h}</span>`).join("");
+    for(const [k,e] of R)if(e._cells)setCells(e,cols);
+    colsKey=ck;
+  }
+  order.push(hd);
+  let n=0;
+  for(const pt of parties){
+    const grp=ps.filter(x=>x.party===pt);
+    if(parties.length>1){
+      const gk="_g"+pt;let g=R.get(gk);
+      if(!g){g=mk("grp",`<span>Party ${pt+1}</span><b></b>`);g._k=gk;R.set(gk,g)}
+      tween(g.querySelector("b"),grp.reduce((a,p)=>a+(p[M]||0),0),fmtL);
+      order.push(g);
+    }
+    for(const p of grp){
+      const k="p:"+p.name;let e=R.get(k);const isNew=!e;
+      if(isNew){e=rowEl(k);R.set(k,e);setCells(e,cols);
+        if(!REDUCE){e.classList.add("enter");e.style.animationDelay=(fresh?n*45:0)+"ms";
+          setTimeout(()=>{e.classList.remove("enter");e.style.animationDelay=""},700+n*45)}}
+      n++;
+      const q=e._q, v=p[M]||0, rk=rank.get(p.name), dead=p.isDead;
+      const local=p.name===d.localPlayer;
+      e.style.setProperty("--c",(local&&SET.general?.constantLocalPlayerColor&&COLORS.Local)||colorOf(p.cls));
+      e.style.setProperty("--w",(v/top*100).toFixed(1)+"%");
+      e.classList.toggle("me",local);
+      e.classList.toggle("top1",rk===1&&v>0);
+      if(!isNew&&e._rk&&rk!==e._rk&&!fresh)flash(e,rk<e._rk?"up":"down");
+      if(!isNew&&dead&&!e._dead)flash(e,"died",800);
+      e.classList.toggle("dead",dead);
+      e._rk=rk;e._dead=dead;
+      q.rk.textContent=rk;
+      q.b.textContent=p.name;
+      // Arcanist: siempre con CPM
+      const sub=(p.cls==="Arcanist"?`<i class="cpm">${p.cpm==null?"—":p.cpm.toFixed(1)} CPM</i> · `:"")+
+        esc(p.cls||"")+(p.gs?" · "+Math.round(p.gs):"");
+      if(q.sm._h!==sub){q.sm.innerHTML=sub;q.sm._h=sub}
+      cols.forEach((col,i)=>{
+        const cell=e._cells[i];if(!cell)return;
+        cell.classList.toggle("key",col.k===M);
+        const val=p[col.k];
+        if(col.t==="s"){cell.textContent=val||"";cell._v=null}
+        else tween(cell,+val||0,FMT[col.t]);
+      });
+      order.push(e);
+    }
+  }
+  // quita lo que ya no está y coloca cada cosa en su orden
+  const keep=new Set(order);
+  for(const [k,e] of R)if(!keep.has(e)){e.remove();R.delete(k)}
+  order.forEach((e,i)=>{if(cont.children[i]!==e)cont.insertBefore(e,cont.children[i]||null)});
+  fit();
+  // FLIP: las filas que cambian de puesto se deslizan desde donde estaban
+  if(!REDUCE&&!fresh)for(const e of order){
+    const y0=before.get(e._k);if(y0==null)continue;
+    const dy=y0-e.getBoundingClientRect().top;
+    if(Math.abs(dy)>1){e.style.transition="none";e.style.transform=`translateY(${dy}px)`;void e.offsetHeight;
+      e.style.transition="";e.style.transform=""}
+  }
+}
+
+$("sel").onchange=e=>{view=e.target.value;sendWant();status();
+  if(view==="live")render();else{follow=false;$("follow").classList.remove("on");showHist(+view)}};
+$("follow").onclick=()=>{follow=!follow;$("follow").classList.toggle("on",follow);if(follow){view="live";$("sel").value="live";sendWant();render()}};
+$("mode").onclick=()=>{mode=mode==="img"?"data":"img";try{localStorage.setItem("mode",mode)}catch(_){}
+  document.body.classList.remove("ui");sendWant();render();status()};
+$("tabs").onclick=e=>{const m=e.target.dataset.m;if(!m)return;metric=m;try{localStorage.setItem("metric",m)}catch(_){}render()};
+
+// tocar la imagen en horizontal muestra u oculta los controles
+$("mirror").onclick=()=>document.body.classList.toggle("ui");
+// Ajustar: el meter del PC toma el tamaño exacto de la zona visible del móvil (en horizontal)
+$("fit").onclick=async()=>{
+  const landscape=matchMedia("(orientation:landscape)").matches;
+  let w,h;
+  if(landscape){const r=$("mirror").getBoundingClientRect();w=r.width;h=r.height}
+  else{w=Math.max(innerWidth,innerHeight)-120;h=Math.min(innerWidth,innerHeight)-20}
+  try{await j(`/api/meter?action=phone&w=${Math.round(w)}&h=${Math.round(h)}`);
+      $("status").textContent=`Fit ${Math.round(w)}×${Math.round(h)}`}catch(e){alert("Fit failed")}
+  document.body.classList.remove("ui");
+};
+$("back").onclick=async()=>{try{await j("/api/meter?action=restore")}catch(e){};document.body.classList.remove("ui")};
+
+async function wake(){try{await navigator.wakeLock?.request("screen")}catch(e){}}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)wake()});
+wake(); render(); loadSettings(); setInterval(loadSettings,60000); connect(); pollHistory(); setInterval(pollHistory,5000); setInterval(status,1000);
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+# Archivos propios de cada PC (no se suben)
+__pycache__/
+*.log
+*.log.1
+.version
+posicion_original.json
+peticion.json
+peticion_resultado.txt
+*.nuevo
+# Copias viejas
+Permitir en firewall (admin).cmd
